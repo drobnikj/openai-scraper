@@ -75,7 +75,7 @@
             "type": "integer",
             "description": "Maximum number of pages that the scraper will open. 0 means unlimited.",
             "minimum": 0,
-            "default": 100,
+            "default": 10,
             "unit": "pages"
         },
         "proxyConfiguration": {
