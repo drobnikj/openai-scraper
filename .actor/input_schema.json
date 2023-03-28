@@ -59,7 +59,7 @@
             "type": "string",
             "description": "A CSS selector of HTML element on the page will be used in instruction. Istead of whole page you can use only part of the page. For example: \"div#content\".",
             "editor": "textfield",
-            "prefill": "html"
+            "prefill": ""
         },
         "content": {
             "title": "Page content",
