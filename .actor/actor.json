@@ -1,7 +1,16 @@
 {
 	"actorSpecification": 1,
-	"name": "openai-scraper",
+	"name": "open-ai-scraper",
+	"title": "Open AI Scraper",
+	"description": "Crawler uses Open AI.",
 	"version": "0.0",
-	"buildTag": "latest",
-	"environmentVariables": {}
+	"meta": {
+		"templateId": "ts-crawlee-playwright-chrome"
+	},
+	"input": "./input_schema.json",
+	"readme": "./README.md",
+	"dockerfile": "./Dockerfile",
+    "storages": {
+        "dataset": "./dataset_schema.json"
+    }
 }

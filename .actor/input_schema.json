@@ -1,0 +1,92 @@
+{
+    "title": "Open AI scraper",
+    "type": "object",
+    "description": "Crawler scrapers pages and after runs Open AI instruction of pages content.",
+    "schemaVersion": 1,
+    "properties": {
+        "startUrls": {
+            "title": "Start URLs",
+            "type": "array",
+            "description": "A static list of URLs to scrape. <br><br>For details, see <a href='https://apify.com/apify/web-scraper#start-urls' target='_blank' rel='noopener'>Start URLs</a> in README.",
+            "prefill": [
+                { "url": "https://apify.com/" }
+            ],
+            "editor": "requestListSources"
+        },
+        "globs": {
+            "title": "Glob Patterns",
+            "type": "array",
+            "description": "Glob patterns to match links in the page that you want to enqueue. Combine with Link selector to tell the scraper where to find links. Omitting the Glob patterns will cause the scraper to enqueue all links matched by the Link selector.",
+            "editor": "globs",
+            "default": [],
+            "prefill": [{
+                "glob": "https://apify.com/*"
+            }]
+        },
+        "linkSelector": {
+            "title": "Link selector",
+            "type": "string",
+            "description": "A CSS selector saying which links on the page (<code>&lt;a&gt;</code> elements with <code>href</code> attribute) shall be followed and added to the request queue. To filter the links added to the queue, use the <b>Pseudo-URLs</b> setting.<br><br>If <b>Link selector</b> is empty, the page links are ignored.<br><br>For details, see <a href='https://apify.com/apify/web-scraper#link-selector' target='_blank' rel='noopener'>Link selector</a> in README.",
+            "editor": "textfield",
+            "prefill": "a[href]",
+            "default": "a[href]"
+        },
+        "instructions": {
+            "title": "Instructions for Open AI",
+            "type": "string",
+            "description": "Instruct Open AI how to generate text. For example: \"Summarize this page into three sentences.\"<br><br>You can instruct to Open AI to answer with \"skip this page\", which will skip the page. For example: \"Summarize this page into three sentences. If the page is about Apify Proxy answer with 'skip this page'.\".",
+            "prefill": "Summarize this page into three sentences.",
+            "editor": "textarea"
+        },
+        "openaiApiKey": {
+            "title": "Open AI API key",
+            "type": "string",
+            "description": "The API key for access Open AI. You can get it from <a href='https://platform.openai.com/account/api-keys' target='_blank' rel='noopener'>Open AI</a>",
+            "editor": "textfield",
+            "isSecret": true
+        },
+        "model": {
+            "title": "Open AI model",
+            "type": "string",
+            "description": "Select Open AI model, see <a href='https://platform.openai.com/docs/models/overview' target='_blank' rel='noopener'>models overview</a>. Keep in mind that different model can handle different length of prompt.",
+            "editor": "select",
+            "default": "gpt-3.5-turbo",
+            "enum": ["gpt-3.5-turbo", "gpt-4", "text-davinci-003", "text-davinci-002", "code-davinci-002"],
+            "enumTitles": ["Text GTP-3", "Text GPT-3.5 Turbo", "Text GPT-2", "Code GPT-2", "Text GPT-4 (beta)"]
+        },
+        "targetSelector": {
+            "title": "HTML element selector",
+            "type": "string",
+            "description": "A CSS selector of HTML element on the page will be used in instruction. Istead of whole page you can use only part of the page. For example: \"div#content\".",
+            "editor": "textfield",
+            "prefill": "html"
+        },
+        "content": {
+            "title": "Page content",
+            "type": "string",
+            "description": "You can select in which format the page will be process using Open AI. The markdown is set by default.",
+            "editor": "select",
+            "default": "markdown",
+            "enum": ["markdown", "html", "text"],
+            "enumTitles": ["Markdown", "HTML", "Plain Text"]
+        },
+        "maxPagesPerCrawl": {
+            "title": "Max pages per run",
+            "type": "integer",
+            "description": "Maximum number of pages that the scraper will open. 0 means unlimited.",
+            "minimum": 0,
+            "default": 100,
+            "unit": "pages"
+        },
+        "proxyConfiguration": {
+            "sectionCaption": "Proxy configuration",
+            "title": "Proxy configuration",
+            "type": "object",
+            "description": "Specifies proxy servers that will be used by the scraper in order to hide its origin.<br><br>For details, see <a href='https://apify.com/apify/web-scraper#proxy-configuration' target='_blank' rel='noopener'>Proxy configuration</a> in README.",
+            "prefill": { "useApifyProxy": true },
+            "default": { "useApifyProxy": false },
+            "editor": "proxy"
+        }
+    },
+    "required": ["startUrls", "instructions", "model", "content" ]
+}

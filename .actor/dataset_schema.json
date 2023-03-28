@@ -1,0 +1,27 @@
+{
+    "actorSpecification": 1,
+    "views": {
+        "overview": {
+            "title": "Overview",
+            "transformation": {
+                "fields": [
+                    "url",
+                    "answer"
+                ]
+            },
+            "display": {
+                "component": "table",
+                "properties": {
+                    "url": {
+                        "label": "URL",
+                        "format": "link"
+                    },
+                    "answer": {
+                        "label": "Open AI answer",
+                        "format": "text"
+                    }
+                }
+            }
+        }
+    }
+}
