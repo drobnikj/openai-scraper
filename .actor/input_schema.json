@@ -52,7 +52,7 @@
             "editor": "select",
             "default": "gpt-3.5-turbo",
             "enum": ["gpt-3.5-turbo", "gpt-4", "text-davinci-003", "text-davinci-002", "code-davinci-002"],
-            "enumTitles": ["Text GTP-3", "Text GPT-3.5 Turbo", "Text GPT-2", "Code GPT-2", "Text GPT-4 (beta)"]
+            "enumTitles": ["Text GPT-3.5 Turbo", "Text GPT-4 (beta)", "Text GTP-3", "Text GPT-2", "Code GPT-2"]
         },
         "targetSelector": {
             "title": "HTML element selector",
