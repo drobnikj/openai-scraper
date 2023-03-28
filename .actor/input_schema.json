@@ -41,14 +41,14 @@
         "openaiApiKey": {
             "title": "Open AI API key",
             "type": "string",
-            "description": "The API key for access Open AI. You can get it from <a href='https://platform.openai.com/account/api-keys' target='_blank' rel='noopener'>Open AI</a>",
+            "description": "The API key for access Open AI. You can get it from <a href='https://platform.openai.com/account/api-keys' target='_blank' rel='noopener'>Open AI platform</a>.",
             "editor": "textfield",
             "isSecret": true
         },
         "model": {
             "title": "Open AI model",
             "type": "string",
-            "description": "Select Open AI model, see <a href='https://platform.openai.com/docs/models/overview' target='_blank' rel='noopener'>models overview</a>. Keep in mind that different model can handle different length of prompt.",
+            "description": "Select Open AI model, see <a href='https://platform.openai.com/docs/models/overview' target='_blank' rel='noopener'>models overview</a>.",
             "editor": "select",
             "default": "gpt-3.5-turbo",
             "enum": ["gpt-3.5-turbo", "gpt-4", "text-davinci-003", "text-davinci-002", "code-davinci-002"],
@@ -64,7 +64,7 @@
         "content": {
             "title": "Page content",
             "type": "string",
-            "description": "You can select in which format the page will be process using Open AI. The markdown is set by default.",
+            "description": "You can select how to process the page using Open AI. The markdown is set by default as it works best as input for Open AI.",
             "editor": "select",
             "default": "markdown",
             "enum": ["markdown", "html", "text"],
@@ -88,5 +88,5 @@
             "editor": "proxy"
         }
     },
-    "required": ["startUrls", "instructions", "model", "content" ]
+    "required": ["startUrls", "instructions", "model", "content", "openaiApiKey" ]
 }
