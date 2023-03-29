@@ -1,8 +1,8 @@
 {
 	"actorSpecification": 1,
-	"name": "open-ai-scraper",
-	"title": "Open AI Scraper",
-	"description": "Crawler uses Open AI.",
+	"name": "openai-scraper",
+	"title": "OpenAI Scraper",
+	"description": "Crawler uses OpenAI",
 	"version": "0.0",
 	"meta": {
 		"templateId": "ts-crawlee-playwright-chrome"

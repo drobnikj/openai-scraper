@@ -5,6 +5,10 @@ const cleanWhitespaces = (attribute?: string) => {
     return attribute ? attribute.replace(/(\n+\s*)+/g, '\n') : '';
 };
 
+/**
+ * Ignore href attribute in links and replace it with just link content.
+ * Instead of [link text](https://example.com) it will be [link text]
+ */
 const ignoreHrefSrc: Rule = {
     filter(node: Node, options: Options) {
         return (
@@ -15,10 +19,14 @@ const ignoreHrefSrc: Rule = {
         );
     },
     replacement(content: string) {
-        return content;
+        return `[${content}]()`;
     },
 };
 
+/**
+ * Ignore src attribute in images and replace it with just image alt text.
+ * Instead of ![alt text](https://example.com/image.png) it will be ![alt text]
+ */
 const ignoreImageSrc: Rule = {
     filter: 'img',
     replacement(_content: string, node: Node) {

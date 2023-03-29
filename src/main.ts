@@ -68,9 +68,6 @@ const crawler = new PlaywrightCrawler({
         }
         const contentTokenLength = getNumberOfTextTokens(pageContent);
 
-        // TODO: File for debugging
-        await Actor.setValue(`${Math.random().toString().split('.')[1]}`, pageContent, { contentType: 'text/plain' });
-
         if (contentTokenLength > modelConfig.maxTokens) {
             // TODO: Some explanation what user can with long content.
             const message = `Page content is too long for the ${input.model}. Model can handle up to ${modelConfig.maxTokens} tokens.`;
@@ -79,7 +76,7 @@ const crawler = new PlaywrightCrawler({
         }
 
         log.info(
-            `Processing page ${request.url} with Open AI instruction...`,
+            `Processing page ${request.url} with OpenAI instruction...`,
             { contentLength: pageContent.length, contentTokenLength, contentFormat: input.content },
         );
 
@@ -119,7 +116,6 @@ const crawler = new PlaywrightCrawler({
         // Store the results
         await Dataset.pushData({
             url: request.loadedUrl,
-            prompt, // TODO: just for debugging, remove later
             answer,
         });
     },

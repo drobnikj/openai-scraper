@@ -17,7 +17,7 @@
                         "format": "link"
                     },
                     "answer": {
-                        "label": "Open AI answer",
+                        "label": "OpenAI answer",
                         "format": "text"
                     }
                 }
