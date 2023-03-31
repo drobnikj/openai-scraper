@@ -1,5 +1,5 @@
 import { encode } from 'gpt-3-encoder';
-import { Configuration, OpenAIApi } from 'openai';
+import { Configuration, OpenAIApi, CreateCompletionResponseUsage } from 'openai';
 import { OpenaiAPIError } from './errors.js';
 
 export const getOpenAIClient = (apiKey: string) => {
@@ -13,6 +13,7 @@ interface GPTModelConfig {
     model: string;
     maxTokens: number;
     interface: 'text' | 'chat';
+    cost?: number; // USD cost per 1000 tokens
 }
 
 export const GPT_MODEL_LIST: {[key: string]: GPTModelConfig} = {
@@ -25,6 +26,7 @@ export const GPT_MODEL_LIST: {[key: string]: GPTModelConfig} = {
         model: 'gpt-3.5-turbo',
         maxTokens: 4096,
         interface: 'chat',
+        cost: 0.002,
     },
     'text-davinci-002': {
         model: 'text-davinci-002',
@@ -40,6 +42,7 @@ export const GPT_MODEL_LIST: {[key: string]: GPTModelConfig} = {
         model: 'gpt-4',
         maxTokens: 8192,
         interface: 'chat',
+        cost: 0.03,
     },
 };
 
@@ -69,6 +72,7 @@ export const processInstructions = async ({
     prompt,
 } : { modelConfig: GPTModelConfig, openai: OpenAIApi, prompt: string }) => {
     let answer = '';
+    let usage = {} as CreateCompletionResponseUsage;
     const promptTokenLength = getNumberOfTextTokens(prompt);
     if (modelConfig.interface === 'text') {
         const completion = await openai.createCompletion({
@@ -77,6 +81,7 @@ export const processInstructions = async ({
             max_tokens: modelConfig.maxTokens - promptTokenLength - 1,
         });
         answer = completion?.data?.choices[0]?.text || '';
+        if (completion?.data?.usage) usage = completion?.data?.usage;
     } else if (modelConfig.interface === 'chat') {
         const conversation = await openai.createChatCompletion({
             model: modelConfig.model,
@@ -89,8 +94,40 @@ export const processInstructions = async ({
             max_tokens: modelConfig.maxTokens - promptTokenLength - 1,
         });
         answer = conversation?.data?.choices[0]?.message?.content || '';
+        if (conversation?.data?.usage) usage = conversation?.data?.usage;
     } else {
         throw new Error(`Unsupported interface ${modelConfig.interface}`);
     }
-    return answer;
+    return {
+        answer,
+        usage,
+    };
 };
+
+export class OpenaiAPIUsage {
+    model: string;
+    apiCallsCount: number;
+    usage: CreateCompletionResponseUsage;
+    finalCostUSD: number;
+    cost: number;
+    constructor(model: string) {
+        this.model = model;
+        this.cost = GPT_MODEL_LIST[model].cost || 0;
+        this.apiCallsCount = 0;
+        this.finalCostUSD = 0;
+        this.usage = {
+            prompt_tokens: 0,
+            completion_tokens: 0,
+            total_tokens: 0,
+        };
+    }
+
+    logApiCallUsage(usage: CreateCompletionResponseUsage) {
+        this.apiCallsCount += 1;
+        Object.keys(this.usage).forEach((key: string) => {
+            // @ts-ignore
+            this.usage[key] += usage[key] || 0;
+        });
+        this.finalCostUSD += this.cost * (usage.total_tokens / 1000);
+    }
+}

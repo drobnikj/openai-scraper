@@ -8,24 +8,29 @@ import {
     getOpenAIClient,
     validateGPTModel,
     rethrowOpenaiError,
+    OpenaiAPIUsage,
 } from './openai.js';
 import { chunkText, htmlToMarkdown, htmlToText, shortsText, shrinkHtml } from './processors.js';
 
 const MAX_REQUESTS_PER_CRAWL = 100;
 
-// TODO: We can make this configurable
-const MERGE_INSTRUCTIONS = 'Merge instructions';
-
 const MERGE_DOCS_SEPARATOR = '----';
+
+// TODO: We can make this configurable
+const MERGE_INSTRUCTIONS = `Merge the following text separated by ${MERGE_DOCS_SEPARATOR} into a single text. The final text should have same format.`;
 
 // Initialize the Apify SDK
 await Actor.init();
+
+if (!process.env.OPENAI_API_KEY) {
+    await Actor.fail('OPENAI_API_KEY is not set!');
+}
 
 const input = await Actor.getInput() as Input;
 
 if (!input) throw new Error('INPUT cannot be empty!');
 // @ts-ignore
-const openai = await getOpenAIClient(input.openaiApiKey || process.env.OPENAI_API_KEY);
+const openai = await getOpenAIClient(process.env.OPENAI_API_KEY);
 const modelConfig = validateGPTModel(input.model);
 
 const crawler = new PlaywrightCrawler({
@@ -74,6 +79,7 @@ const crawler = new PlaywrightCrawler({
         const contentTokenLength = getNumberOfTextTokens(pageContent);
 
         let answer = '';
+        const openaiUsage = new OpenaiAPIUsage(input.model);
         if (contentTokenLength > modelConfig.maxTokens) {
             if (input.longContentConfig === 'skip') {
                 log.info(
@@ -90,7 +96,9 @@ const crawler = new PlaywrightCrawler({
                 );
                 const prompt = `${input.instructions}\`\`\`${shortenContent}\`\`\``;
                 try {
-                    answer = await processInstructions({ prompt, openai, modelConfig });
+                    const answerResult = await processInstructions({ prompt, openai, modelConfig });
+                    answer = answerResult.answer;
+                    openaiUsage.logApiCallUsage(answerResult.usage);
                 } catch (err: any) {
                     throw rethrowOpenaiError(err);
                 }
@@ -108,9 +116,12 @@ const crawler = new PlaywrightCrawler({
                 }
                 try {
                     const answerList = await Promise.all(promises);
-                    const joinAnswers = answerList.map((a: string) => `\`\`\`${a}\`\`\``).join(`\n\n${MERGE_DOCS_SEPARATOR}\n\n`);
+                    const joinAnswers = answerList.map(({ answer: a }) => a).join(`\n\n${MERGE_DOCS_SEPARATOR}\n\n`);
+                    answerList.forEach(({ usage }) => openaiUsage.logApiCallUsage(usage));
                     const mergePrompt = `${MERGE_INSTRUCTIONS}\n${joinAnswers}`;
-                    answer = await processInstructions({ prompt: mergePrompt, openai, modelConfig });
+                    const answerResult = await processInstructions({ prompt: mergePrompt, openai, modelConfig });
+                    answer = answerResult.answer;
+                    openaiUsage.logApiCallUsage(answerResult.usage);
                 } catch (err: any) {
                     throw rethrowOpenaiError(err);
                 }
@@ -122,7 +133,9 @@ const crawler = new PlaywrightCrawler({
             );
             const prompt = `${input.instructions}\`\`\`${pageContent}\`\`\``;
             try {
-                answer = await processInstructions({ prompt, openai, modelConfig });
+                const answerResult = await processInstructions({ prompt, openai, modelConfig });
+                answer = answerResult.answer;
+                openaiUsage.logApiCallUsage(answerResult.usage);
             } catch (err: any) {
                 throw rethrowOpenaiError(err);
             }
@@ -141,6 +154,12 @@ const crawler = new PlaywrightCrawler({
         await Dataset.pushData({
             url: request.loadedUrl,
             answer,
+            '#debug': {
+                model: input.model,
+                openaiUsage: openaiUsage.usage,
+                usdUsage: openaiUsage.finalCostUSD,
+                apiCallsCount: openaiUsage.apiCallsCount,
+            },
         });
     },
 

@@ -8,7 +8,6 @@ export interface Input {
     globs: GlobInput[];
     linkSelector?: string;
     instructions: string;
-    openaiApiKey?: string;
     model: string;
     targetSelector?: string;
     content?: string;

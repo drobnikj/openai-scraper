@@ -38,13 +38,6 @@
             "prefill": "Summarize this page into three sentences.",
             "editor": "textarea"
         },
-        "openaiApiKey": {
-            "title": "OpenAI API key",
-            "type": "string",
-            "description": "The API key for access OpenAI. You can get it from <a href='https://platform.openai.com/account/api-keys' target='_blank' rel='noopener'>OpenAI platform</a>.",
-            "editor": "textfield",
-            "isSecret": true
-        },
         "model": {
             "title": "GPT model",
             "type": "string",
@@ -97,5 +90,5 @@
             "editor": "proxy"
         }
     },
-    "required": ["startUrls", "instructions", "model", "content", "openaiApiKey" ]
+    "required": ["startUrls", "instructions", "model", "content" ]
 }
