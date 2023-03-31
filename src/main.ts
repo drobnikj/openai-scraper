@@ -87,14 +87,14 @@ const crawler = new PlaywrightCrawler({
                     { contentLength: pageContent.length, contentTokenLength, url: input.content },
                 );
                 return;
-            } if (input.longContentConfig === 'shorten') {
+            } if (input.longContentConfig === 'truncate') {
                 const contentMaxTokens = modelConfig.maxTokens * 0.9; // 10% buffer for answer
-                const shortenContent = shortsText(pageContent, contentMaxTokens);
+                const truncatedContent = shortsText(pageContent, contentMaxTokens);
                 log.info(
-                    `Processing page ${request.url} with shorten text using GPT instruction...`,
-                    { originalContentLength: pageContent.length, contentLength: shortenContent.length, contentMaxTokens, contentFormat: input.content },
+                    `Processing page ${request.url} with truncated text using GPT instruction...`,
+                    { originalContentLength: pageContent.length, contentLength: truncatedContent.length, contentMaxTokens, contentFormat: input.content },
                 );
-                const prompt = `${input.instructions}\`\`\`${shortenContent}\`\`\``;
+                const prompt = `${input.instructions}\`\`\`${truncatedContent}\`\`\``;
                 try {
                     const answerResult = await processInstructions({ prompt, openai, modelConfig });
                     answer = answerResult.answer;

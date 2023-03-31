@@ -13,7 +13,7 @@ export interface Input {
     content?: string;
     maxPagesPerCrawl: number;
     proxyConfiguration: ProxyConfigurationOptions;
-    longContentConfig?: 'shorten' | 'split' | 'skip';
+    longContentConfig?: 'truncate' | 'split' | 'skip';
 }
 
 export const HTML_TAGS_TO_IGNORE = ['script', 'style', 'noscript'];
