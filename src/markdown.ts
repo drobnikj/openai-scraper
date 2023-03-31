@@ -44,6 +44,6 @@ export const htmlToMarkdownProcessor = new TurndownService({
 });
 HTML_TAGS_TO_IGNORE.forEach((tag: any) => htmlToMarkdownProcessor.remove(tag));
 htmlToMarkdownProcessor.use(plugin.gfm); // Use Github Flavored Markdown
-// Ignore href and src attributes for save tokens
-htmlToMarkdownProcessor.addRule('ignoreHrefSrc', ignoreHrefSrc);
-htmlToMarkdownProcessor.addRule('ignoreImageSrc', ignoreImageSrc);
+// TODO: Check how it performs without these rules
+// htmlToMarkdownProcessor.addRule('ignoreHrefSrc', ignoreHrefSrc);
+// htmlToMarkdownProcessor.addRule('ignoreImageSrc', ignoreImageSrc);

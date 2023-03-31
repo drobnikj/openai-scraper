@@ -5,13 +5,11 @@ This means that you can use the scraper to extract content from a website, and t
 
 ## Limits
 
-The models itself have a limit of number of tokens they can handle.
+The models itself have a limit of number of tokens they can handle, but there is option to overcome this limit.
 You can check the limits for each model on the [OpenAI API documentation](https://platform.openai.com/docs/models/overview).
 
 ## Usage
 
-To get started with GPT Scraper, you only need to obtain an API key from OpenAI web.
-You can find you [OpenAI token under this link](https://platform.openai.com/account/api-keys), if you are not sign-up yet you need to do it the first.
 
 ### Example usage
 
