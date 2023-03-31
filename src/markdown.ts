@@ -1,4 +1,5 @@
 import TurndownService, { Node, Options, Rule } from 'turndown';
+import plugin from 'joplin-turndown-plugin-gfm';
 import { HTML_TAGS_TO_IGNORE } from './consts.js';
 
 const cleanWhitespaces = (attribute?: string) => {
@@ -38,7 +39,11 @@ const ignoreImageSrc: Rule = {
 
 export const htmlToMarkdownProcessor = new TurndownService({
     headingStyle: 'atx',
+    codeBlockStyle: 'fenced',
+
 });
 HTML_TAGS_TO_IGNORE.forEach((tag: any) => htmlToMarkdownProcessor.remove(tag));
+htmlToMarkdownProcessor.use(plugin.gfm); // Use Github Flavored Markdown
+// Ignore href and src attributes for save tokens
 htmlToMarkdownProcessor.addRule('ignoreHrefSrc', ignoreHrefSrc);
 htmlToMarkdownProcessor.addRule('ignoreImageSrc', ignoreImageSrc);

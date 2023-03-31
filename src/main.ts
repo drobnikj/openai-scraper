@@ -70,13 +70,10 @@ const crawler = new PlaywrightCrawler({
 
         if (contentTokenLength > modelConfig.maxTokens) {
             // TODO: Some explanation what user can with long content.
-            const message = `Page content is too long for the ${input.model}. Model can handle up to ${modelConfig.maxTokens} tokens.`;
+            const message = `Page content is too long for the ${input.model}. Model can handle up to ${modelConfig.maxTokens} tokens.\n`
+                + 'You can try to set split content or use specific element to extract only part of the content.';
             log.error(message);
             throw new UserFacedError(message);
-            /**
-             * We can solve it in way to split the content into multiple chunks and then ask about same question on each chunk.
-             * In the end to join the anwer to ask model to sum it up into one answer.
-             */
         }
 
         log.info(
