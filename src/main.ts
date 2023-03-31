@@ -30,7 +30,7 @@ const input = await Actor.getInput() as Input;
 
 if (!input) throw new Error('INPUT cannot be empty!');
 // @ts-ignore
-const openai = await getOpenAIClient(process.env.OPENAI_API_KEY);
+const openai = await getOpenAIClient(process.env.OPENAI_API_KEY, process.env.OPENAI_ORGANIZATION_ID);
 const modelConfig = validateGPTModel(input.model);
 
 const crawler = new PlaywrightCrawler({

@@ -2,9 +2,10 @@ import { encode } from 'gpt-3-encoder';
 import { Configuration, OpenAIApi, CreateCompletionResponseUsage } from 'openai';
 import { OpenaiAPIError } from './errors.js';
 
-export const getOpenAIClient = (apiKey: string) => {
+export const getOpenAIClient = (apiKey: string, organization?: string) => {
     const configuration = new Configuration({
         apiKey,
+        organization,
     });
     return new OpenAIApi(configuration);
 };
