@@ -1,6 +1,7 @@
 import { convert } from 'html-to-text';
 import { htmlToMarkdownProcessor } from './markdown.js';
-import { HTML_TAGS_TO_IGNORE } from './consts.js';
+import { HTML_TAGS_TO_IGNORE } from './input.js';
+import { getNumberOfTextTokens } from './openai.js';
 
 /**
  * Converts HTML to text
@@ -37,4 +38,29 @@ export const shrinkHtml = (html: string) => {
  */
 export const htmlToMarkdown = (html: string) => {
     return htmlToMarkdownProcessor.turndown(html);
+};
+
+export const chunkText = (text: string, maxLength: number) => {
+    const chunks: string[] = [];
+    let chunk = '';
+    for (const line of text.split('\n')) {
+        if (chunk.length + line.length > maxLength) {
+            chunks.push(chunk);
+            chunk = '';
+        }
+        chunk += `${line}\n`;
+    }
+    chunks.push(chunk);
+    return chunks;
+};
+
+export const shortsText = (text: string, maxTokenLength: number) => {
+    let shortText = '';
+    for (const line of text.split('\n')) {
+        if (getNumberOfTextTokens(shortText) + getNumberOfTextTokens(line) > maxTokenLength) {
+            break;
+        }
+        shortText += `${line}\n`;
+    }
+    return shortText;
 };

@@ -3,7 +3,7 @@ import { ProxyConfigurationOptions, GlobInput, RequestOptions } from '@crawlee/c
 /**
  * Input schema in TypeScript format.
  */
-export interface Consts {
+export interface Input {
     startUrls: RequestOptions[];
     globs: GlobInput[];
     linkSelector?: string;
@@ -14,6 +14,7 @@ export interface Consts {
     content?: string;
     maxPagesPerCrawl: number;
     proxyConfiguration: ProxyConfigurationOptions;
+    longContentConfig?: 'shorten' | 'split' | 'skip';
 }
 
 export const HTML_TAGS_TO_IGNORE = ['script', 'style', 'noscript'];

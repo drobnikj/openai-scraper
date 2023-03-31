@@ -1,22 +1,27 @@
 import { Actor } from 'apify';
 import { PlaywrightCrawler, Dataset, log } from 'crawlee';
 import { createRequestDebugInfo } from '@crawlee/utils';
-import { Consts } from './consts.js';
+import { Input } from './input.js';
 import {
+    processInstructions,
     getNumberOfTextTokens,
     getOpenAIClient,
     validateGPTModel,
     rethrowOpenaiError,
 } from './openai.js';
-import { htmlToMarkdown, htmlToText, shrinkHtml } from './processors.js';
-import { UserFacedError } from './errors.js';
+import { chunkText, htmlToMarkdown, htmlToText, shortsText, shrinkHtml } from './processors.js';
 
 const MAX_REQUESTS_PER_CRAWL = 100;
+
+// TODO: We can make this configurable
+const MERGE_INSTRUCTIONS = 'Merge instructions';
+
+const MERGE_DOCS_SEPARATOR = '----';
 
 // Initialize the Apify SDK
 await Actor.init();
 
-const input = await Actor.getInput() as Consts;
+const input = await Actor.getInput() as Input;
 
 if (!input) throw new Error('INPUT cannot be empty!');
 // @ts-ignore
@@ -68,50 +73,68 @@ const crawler = new PlaywrightCrawler({
         }
         const contentTokenLength = getNumberOfTextTokens(pageContent);
 
+        let answer = '';
         if (contentTokenLength > modelConfig.maxTokens) {
-            // TODO: Some explanation what user can with long content.
-            const message = `Page content is too long for the ${input.model}. Model can handle up to ${modelConfig.maxTokens} tokens.\n`
-                + 'You can try to set split content or use specific element to extract only part of the content.';
-            log.error(message);
-            throw new UserFacedError(message);
+            if (input.longContentConfig === 'skip') {
+                log.info(
+                    `Skipping page ${request.url} because content is too long for the ${input.model} model.`,
+                    { contentLength: pageContent.length, contentTokenLength, url: input.content },
+                );
+                return;
+            } if (input.longContentConfig === 'shorten') {
+                const contentMaxTokens = modelConfig.maxTokens * 0.9; // 10% buffer for answer
+                const shortenContent = shortsText(pageContent, contentMaxTokens);
+                log.info(
+                    `Processing page ${request.url} with shorten text using GPT instruction...`,
+                    { originalContentLength: pageContent.length, contentLength: shortenContent.length, contentMaxTokens, contentFormat: input.content },
+                );
+                const prompt = `${input.instructions}\`\`\`${shortenContent}\`\`\``;
+                try {
+                    answer = await processInstructions({ prompt, openai, modelConfig });
+                } catch (err: any) {
+                    throw rethrowOpenaiError(err);
+                }
+            } else if (input.longContentConfig === 'split') {
+                const contentMaxTokens = modelConfig.maxTokens * 0.9; // 10% buffer for answer
+                const pageChunks = chunkText(pageContent, contentMaxTokens);
+                log.info(
+                    `Processing page ${request.url} with split text using GPT instruction...`,
+                    { originalContentLength: pageContent.length, contentMaxTokens, chunksLength: pageChunks.length, contentFormat: input.content },
+                );
+                const promises = [];
+                for (const contentPart of pageChunks) {
+                    const prompt = `${input.instructions}\`\`\`${contentPart}\`\`\``;
+                    promises.push(processInstructions({ prompt, openai, modelConfig }));
+                }
+                try {
+                    const answerList = await Promise.all(promises);
+                    const joinAnswers = answerList.map((a: string) => `\`\`\`${a}\`\`\``).join(`\n\n${MERGE_DOCS_SEPARATOR}\n\n`);
+                    const mergePrompt = `${MERGE_INSTRUCTIONS}\n${joinAnswers}`;
+                    answer = await processInstructions({ prompt: mergePrompt, openai, modelConfig });
+                } catch (err: any) {
+                    throw rethrowOpenaiError(err);
+                }
+            }
+        } else {
+            log.info(
+                `Processing page ${request.url} with GPT instruction...`,
+                { contentLength: pageContent.length, contentTokenLength, contentFormat: input.content },
+            );
+            const prompt = `${input.instructions}\`\`\`${pageContent}\`\`\``;
+            try {
+                answer = await processInstructions({ prompt, openai, modelConfig });
+            } catch (err: any) {
+                throw rethrowOpenaiError(err);
+            }
         }
 
-        log.info(
-            `Processing page ${request.url} with OpenAI instruction...`,
-            { contentLength: pageContent.length, contentTokenLength, contentFormat: input.content },
-        );
-
-        const prompt = `${input.instructions}\`\`\`${pageContent}\`\`\``;
-        let answer = '';
-        try {
-            if (modelConfig.interface === 'text') {
-                const completion = await openai.createCompletion({
-                    model: modelConfig.model,
-                    prompt,
-                    max_tokens: modelConfig.maxTokens - contentTokenLength - 1,
-                });
-                answer = completion?.data?.choices[0]?.text || '';
-            } else if (modelConfig.interface === 'chat') {
-                const conversation = await openai.createChatCompletion({
-                    model: modelConfig.model,
-                    messages: [
-                        {
-                            role: 'user',
-                            content: prompt,
-                        },
-                    ],
-                });
-                answer = conversation?.data?.choices[0]?.message?.content || '';
-            } else {
-                throw new Error(`Unsupported interface ${modelConfig.interface}`);
-            }
-            if (!answer) throw new Error('No answer was returned.');
-            if (answer.toLocaleLowerCase().includes('skip this page')) {
-                log.info(`Skipping page ${request.url} from output, the key word "skip this page" was found in answer.`);
-                return;
-            }
-        } catch (err: any) {
-            throw rethrowOpenaiError(err);
+        if (!answer) {
+            log.error('No answer was returned.', { url: request.url });
+            return;
+        }
+        if (answer.toLocaleLowerCase().includes('skip this page')) {
+            log.info(`Skipping page ${request.url} from output, the key word "skip this page" was found in answer.`, { answer });
+            return;
         }
 
         // Store the results

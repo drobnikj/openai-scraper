@@ -70,6 +70,15 @@
             "enum": ["markdown", "html", "text"],
             "enumTitles": ["Markdown", "HTML", "Plain Text"]
         },
+        "longContentConfig": {
+            "title": "How to handle with too long content?",
+            "type": "string",
+            "description": "Select how to handle with too long content. The default is to shorten the content.\n\nShorten content - the content will be shortened to the maximum length.\n\nSplit content - the content will be split into multiple chunks and the instruction will run for each of them.\n\nSkip page - the page will be skipped.",
+            "editor": "select",
+            "default": "us",
+            "enum": ["shorten", "split", "skip"],
+            "enumTitles": ["Shorten content", "Split content (works only for markdown)", "Skip page"]
+        },
         "maxPagesPerCrawl": {
             "title": "Max pages per run",
             "type": "integer",

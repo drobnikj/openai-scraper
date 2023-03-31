@@ -1,6 +1,6 @@
 import TurndownService, { Node, Options, Rule } from 'turndown';
 import plugin from 'joplin-turndown-plugin-gfm';
-import { HTML_TAGS_TO_IGNORE } from './consts.js';
+import { HTML_TAGS_TO_IGNORE } from './input.js';
 
 const cleanWhitespaces = (attribute?: string) => {
     return attribute ? attribute.replace(/(\n+\s*)+/g, '\n') : '';
