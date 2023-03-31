@@ -25,7 +25,7 @@ export const GPT_MODEL_LIST: {[key: string]: GPTModelConfig} = {
     },
     'gpt-3.5-turbo': {
         model: 'gpt-3.5-turbo',
-        maxTokens: 4096,
+        maxTokens: 4097,
         interface: 'chat',
         cost: 0.002,
     },

@@ -77,6 +77,7 @@ const crawler = new PlaywrightCrawler({
                 break;
         }
         const contentTokenLength = getNumberOfTextTokens(pageContent);
+        const instructionTokenLength = getNumberOfTextTokens(input.instructions);
 
         let answer = '';
         const openaiUsage = new OpenaiAPIUsage(input.model);
@@ -88,7 +89,7 @@ const crawler = new PlaywrightCrawler({
                 );
                 return;
             } if (input.longContentConfig === 'truncate') {
-                const contentMaxTokens = modelConfig.maxTokens * 0.9; // 10% buffer for answer
+                const contentMaxTokens = modelConfig.maxTokens * 0.9 - instructionTokenLength; // 10% buffer for answer
                 const truncatedContent = shortsText(pageContent, contentMaxTokens);
                 log.info(
                     `Processing page ${request.url} with truncated text using GPT instruction...`,
@@ -103,7 +104,7 @@ const crawler = new PlaywrightCrawler({
                     throw rethrowOpenaiError(err);
                 }
             } else if (input.longContentConfig === 'split') {
-                const contentMaxTokens = modelConfig.maxTokens * 0.9; // 10% buffer for answer
+                const contentMaxTokens = modelConfig.maxTokens * 0.9 - instructionTokenLength; // 10% buffer for answer
                 const pageChunks = chunkText(pageContent, contentMaxTokens);
                 log.info(
                     `Processing page ${request.url} with split text using GPT instruction...`,
