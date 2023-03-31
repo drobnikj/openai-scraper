@@ -1,26 +1,36 @@
 import { Actor } from 'apify';
 import { PlaywrightCrawler, Dataset, log } from 'crawlee';
 import { createRequestDebugInfo } from '@crawlee/utils';
-import { Consts } from './consts.js';
+import { Input } from './input.js';
 import {
+    processInstructions,
     getNumberOfTextTokens,
     getOpenAIClient,
     validateGPTModel,
     rethrowOpenaiError,
+    OpenaiAPIUsage,
 } from './openai.js';
-import { htmlToMarkdown, htmlToText, shrinkHtml } from './processors.js';
-import { UserFacedError } from './errors.js';
+import { chunkText, htmlToMarkdown, htmlToText, shortsText, shrinkHtml } from './processors.js';
 
 const MAX_REQUESTS_PER_CRAWL = 100;
+
+const MERGE_DOCS_SEPARATOR = '----';
+
+// TODO: We can make this configurable
+const MERGE_INSTRUCTIONS = `Merge the following text separated by ${MERGE_DOCS_SEPARATOR} into a single text. The final text should have same format.`;
 
 // Initialize the Apify SDK
 await Actor.init();
 
-const input = await Actor.getInput() as Consts;
+if (!process.env.OPENAI_API_KEY) {
+    await Actor.fail('OPENAI_API_KEY is not set!');
+}
+
+const input = await Actor.getInput() as Input;
 
 if (!input) throw new Error('INPUT cannot be empty!');
 // @ts-ignore
-const openai = await getOpenAIClient(input.openaiApiKey || process.env.OPENAI_API_KEY);
+const openai = await getOpenAIClient(process.env.OPENAI_API_KEY);
 const modelConfig = validateGPTModel(input.model);
 
 const crawler = new PlaywrightCrawler({
@@ -68,59 +78,94 @@ const crawler = new PlaywrightCrawler({
         }
         const contentTokenLength = getNumberOfTextTokens(pageContent);
 
-        // TODO: File for debugging
-        await Actor.setValue(`${Math.random().toString().split('.')[1]}`, pageContent, { contentType: 'text/plain' });
-
-        if (contentTokenLength > modelConfig.maxTokens) {
-            // TODO: Some explanation what user can with long content.
-            const message = `Page content is too long for the ${input.model}. Model can handle up to ${modelConfig.maxTokens} tokens.`;
-            log.error(message);
-            throw new UserFacedError(message);
-        }
-
-        log.info(
-            `Processing page ${request.url} with Open AI instruction...`,
-            { contentLength: pageContent.length, contentTokenLength, contentFormat: input.content },
-        );
-
-        const prompt = `${input.instructions}\`\`\`${pageContent}\`\`\``;
         let answer = '';
-        try {
-            if (modelConfig.interface === 'text') {
-                const completion = await openai.createCompletion({
-                    model: modelConfig.model,
-                    prompt,
-                    max_tokens: modelConfig.maxTokens - contentTokenLength - 1,
-                });
-                answer = completion?.data?.choices[0]?.text || '';
-            } else if (modelConfig.interface === 'chat') {
-                const conversation = await openai.createChatCompletion({
-                    model: modelConfig.model,
-                    messages: [
-                        {
-                            role: 'user',
-                            content: prompt,
-                        },
-                    ],
-                });
-                answer = conversation?.data?.choices[0]?.message?.content || '';
-            } else {
-                throw new Error(`Unsupported interface ${modelConfig.interface}`);
-            }
-            if (!answer) throw new Error('No answer was returned.');
-            if (answer.toLocaleLowerCase().includes('skip this page')) {
-                log.info(`Skipping page ${request.url} from output, the key word "skip this page" was found in answer.`);
+        const openaiUsage = new OpenaiAPIUsage(input.model);
+        if (contentTokenLength > modelConfig.maxTokens) {
+            if (input.longContentConfig === 'skip') {
+                log.info(
+                    `Skipping page ${request.url} because content is too long for the ${input.model} model.`,
+                    { contentLength: pageContent.length, contentTokenLength, url: input.content },
+                );
                 return;
+            } if (input.longContentConfig === 'truncate') {
+                const contentMaxTokens = modelConfig.maxTokens * 0.9; // 10% buffer for answer
+                const truncatedContent = shortsText(pageContent, contentMaxTokens);
+                log.info(
+                    `Processing page ${request.url} with truncated text using GPT instruction...`,
+                    { originalContentLength: pageContent.length, contentLength: truncatedContent.length, contentMaxTokens, contentFormat: input.content },
+                );
+                const prompt = `${input.instructions}\`\`\`${truncatedContent}\`\`\``;
+                try {
+                    const answerResult = await processInstructions({ prompt, openai, modelConfig });
+                    answer = answerResult.answer;
+                    openaiUsage.logApiCallUsage(answerResult.usage);
+                } catch (err: any) {
+                    throw rethrowOpenaiError(err);
+                }
+            } else if (input.longContentConfig === 'split') {
+                const contentMaxTokens = modelConfig.maxTokens * 0.9; // 10% buffer for answer
+                const pageChunks = chunkText(pageContent, contentMaxTokens);
+                log.info(
+                    `Processing page ${request.url} with split text using GPT instruction...`,
+                    { originalContentLength: pageContent.length, contentMaxTokens, chunksLength: pageChunks.length, contentFormat: input.content },
+                );
+                const promises = [];
+                for (const contentPart of pageChunks) {
+                    const prompt = `${input.instructions}\`\`\`${contentPart}\`\`\``;
+                    promises.push(processInstructions({ prompt, openai, modelConfig }));
+                }
+                try {
+                    const answerList = await Promise.all(promises);
+                    const joinAnswers = answerList.map(({ answer: a }) => a).join(`\n\n${MERGE_DOCS_SEPARATOR}\n\n`);
+                    answerList.forEach(({ usage }) => openaiUsage.logApiCallUsage(usage));
+                    const mergePrompt = `${MERGE_INSTRUCTIONS}\n${joinAnswers}`;
+                    const answerResult = await processInstructions({ prompt: mergePrompt, openai, modelConfig });
+                    answer = answerResult.answer;
+                    openaiUsage.logApiCallUsage(answerResult.usage);
+                } catch (err: any) {
+                    throw rethrowOpenaiError(err);
+                }
             }
-        } catch (err: any) {
-            throw rethrowOpenaiError(err);
+        } else {
+            log.info(
+                `Processing page ${request.url} with GPT instruction...`,
+                { contentLength: pageContent.length, contentTokenLength, contentFormat: input.content },
+            );
+            const prompt = `${input.instructions}\`\`\`${pageContent}\`\`\``;
+            try {
+                const answerResult = await processInstructions({ prompt, openai, modelConfig });
+                answer = answerResult.answer;
+                openaiUsage.logApiCallUsage(answerResult.usage);
+            } catch (err: any) {
+                throw rethrowOpenaiError(err);
+            }
         }
+
+        if (!answer) {
+            log.error('No answer was returned.', { url: request.url });
+            return;
+        }
+        if (answer.toLocaleLowerCase().includes('skip this page')) {
+            log.info(`Skipping page ${request.url} from output, the key word "skip this page" was found in answer.`, { answer });
+            return;
+        }
+
+        log.info(`Page ${request.url} processed.`, {
+            openaiUsage: openaiUsage.usage,
+            usdUsage: openaiUsage.finalCostUSD,
+            apiCallsCount: openaiUsage.apiCallsCount,
+        });
 
         // Store the results
         await Dataset.pushData({
             url: request.loadedUrl,
-            prompt, // TODO: just for debugging, remove later
             answer,
+            '#debug': {
+                model: input.model,
+                openaiUsage: openaiUsage.usage,
+                usdUsage: openaiUsage.finalCostUSD,
+                apiCallsCount: openaiUsage.apiCallsCount,
+            },
         });
     },
 
