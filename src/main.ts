@@ -150,6 +150,12 @@ const crawler = new PlaywrightCrawler({
             return;
         }
 
+        log.info(`Page ${request.url} processed.`, {
+            openaiUsage: openaiUsage.usage,
+            usdUsage: openaiUsage.finalCostUSD,
+            apiCallsCount: openaiUsage.apiCallsCount,
+        });
+
         // Store the results
         await Dataset.pushData({
             url: request.loadedUrl,
