@@ -70,7 +70,7 @@
             "editor": "select",
             "default": "truncate",
             "enum": ["truncate", "split", "skip"],
-            "enumTitles": ["Truncate content", "Split content (works only for markdown)", "Skip page"]
+            "enumTitles": ["Truncate content", "Split content", "Skip page"]
         },
         "maxPagesPerCrawl": {
             "title": "Max pages per run",
