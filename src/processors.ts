@@ -27,7 +27,6 @@ export const shrinkHtml = (html: string) => {
         .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/g, '') // remove all script tags
         .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/g, '') // remove all style tags
         .replace(/<noscript[\s\S]*?>[\s\S]*?<\/noscript>/g, '') // remove all no script tags
-        .replace(/\n/g, '') // remove all new lines
         .replace(/\s{2,}/g, ' ') // remove extra spaces
         .replace(/>\s+</g, '><'); // remove all spaces between tags
 };
