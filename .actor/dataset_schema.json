@@ -6,7 +6,8 @@
             "transformation": {
                 "fields": [
                     "url",
-                    "answer"
+                    "answer",
+                    "jsonAnswer"
                 ]
             },
             "display": {

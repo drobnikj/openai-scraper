@@ -114,7 +114,7 @@ You can skip pages from the output by asking GPT to answer with `skip this page`
 
 You can instruct GPT to answer with JSON, and the scraper under the hood parse this JSON and stores it as a structured answer, for example:
 
-- "Find all links on this page and return them as JSON. There will be one attribute, `links`, containing an array of URLs.."
+- "Find all links on this page and return them as JSON. There will be one attribute, `links`, containing an array of URLs."
 
 ### Handle with long content with splitting
 
