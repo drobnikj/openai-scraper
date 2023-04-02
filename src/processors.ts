@@ -3,6 +3,8 @@ import { htmlToMarkdownProcessor } from './markdown.js';
 import { HTML_TAGS_TO_IGNORE } from './input.js';
 import { getNumberOfTextTokens } from './openai.js';
 
+const JSON_REGEX = /\{(?:[^{}]|())*\}/;
+
 /**
  * Converts HTML to text
  * @param html
@@ -62,4 +64,21 @@ export const shortsText = (text: string, maxTokenLength: number) => {
         shortText += `${line}\n`;
     }
     return shortText;
+};
+
+export const tryToParseJsonFromString = (str: string) => {
+    try {
+        return JSON.parse(str);
+    } catch (err) {
+        // Let's try to match json in text
+        const jsonMatch = str.match(JSON_REGEX);
+        if (jsonMatch) {
+            try {
+                return JSON.parse(jsonMatch[1]);
+            } catch (err2) {
+                // Ignore
+            }
+        }
+    }
+    return null;
 };

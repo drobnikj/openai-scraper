@@ -19,6 +19,10 @@
                     "answer": {
                         "label": "Answer",
                         "format": "text"
+                    },
+                    "jsonAnswer": {
+                        "label": "Parsed JSON answer (if any)",
+                        "format": "object"
                     }
                 }
             }

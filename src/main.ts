@@ -10,7 +10,14 @@ import {
     rethrowOpenaiError,
     OpenaiAPIUsage,
 } from './openai.js';
-import { chunkText, htmlToMarkdown, htmlToText, shortsText, shrinkHtml } from './processors.js';
+import {
+    chunkText,
+    htmlToMarkdown,
+    htmlToText,
+    shortsText,
+    shrinkHtml,
+    tryToParseJsonFromString,
+} from './processors.js';
 
 const MAX_REQUESTS_PER_CRAWL = 100;
 
@@ -161,6 +168,7 @@ const crawler = new PlaywrightCrawler({
         await Dataset.pushData({
             url: request.loadedUrl,
             answer,
+            jsonAnswer: tryToParseJsonFromString(answer),
             '#debug': {
                 model: input.model,
                 openaiUsage: openaiUsage.usage,
