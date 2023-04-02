@@ -54,16 +54,18 @@ const crawler = new PlaywrightCrawler({
         log.info(`Opening ${request.url}...`);
 
         // Enqueue links
-        const { processedRequests } = await enqueueLinks({
-            selector: input.linkSelector || 'a[href]',
-            globs: input.globs,
-        });
-        const enqueuedLinks = processedRequests.filter(({ wasAlreadyPresent }) => !wasAlreadyPresent);
-        const alreadyPresentLinksCount = processedRequests.length - enqueuedLinks.length;
-        log.info(
-            `Page ${request.url} enqueued ${enqueuedLinks.length} new URLs.`,
-            { foundLinksCount: enqueuedLinks.length, enqueuedLinksCount: enqueuedLinks.length, alreadyPresentLinksCount },
-        );
+        if (input.linkSelector && input?.globs?.length) {
+            const { processedRequests } = await enqueueLinks({
+                selector: input.linkSelector,
+                globs: input.globs,
+            });
+            const enqueuedLinks = processedRequests.filter(({ wasAlreadyPresent }) => !wasAlreadyPresent);
+            const alreadyPresentLinksCount = processedRequests.length - enqueuedLinks.length;
+            log.info(
+                `Page ${request.url} enqueued ${enqueuedLinks.length} new URLs.`,
+                { foundLinksCount: enqueuedLinks.length, enqueuedLinksCount: enqueuedLinks.length, alreadyPresentLinksCount },
+            );
+        }
 
         // A function to be evaluated by Playwright within the browser context.
         const originalContentHtml = input.targetSelector
