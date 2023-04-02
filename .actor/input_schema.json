@@ -9,7 +9,7 @@
             "type": "array",
             "description": "A static list of URLs to scrape. <br><br>For details, see <a href='https://apify.com/apify/web-scraper#start-urls' target='_blank' rel='noopener'>Start URLs</a> in README.",
             "prefill": [
-                { "url": "https://apify.com/" }
+                { "url": "https://news.ycombinator.com/" }
             ],
             "editor": "requestListSources"
         },
@@ -26,14 +26,13 @@
             "type": "string",
             "description": "A CSS selector saying which links on the page (<code>&lt;a&gt;</code> elements with <code>href</code> attribute) shall be followed and added to the request queue. To filter the links added to the queue, use the <b>Pseudo-URLs</b> setting.<br><br>If <b>Link selector</b> is empty, the page links are ignored.<br><br>For details, see <a href='https://apify.com/apify/web-scraper#link-selector' target='_blank' rel='noopener'>Link selector</a> in README.",
             "editor": "textfield",
-            "prefill": "a[href]",
-            "default": "a[href]"
+            "prefill": "a[href]"
         },
         "instructions": {
             "title": "Instructions for GPT",
             "type": "string",
             "description": "Instruct GPT how to generate text. For example: \"Summarize this page into three sentences.\"<br><br>You can instruct to OpenAI to answer with \"skip this page\", which will skip the page. For example: \"Summarize this page into three sentences. If the page is about Apify Proxy answer with 'skip this page'.\".",
-            "prefill": "Summarize this page into three sentences.",
+            "prefill": "Get from the page the post with the most points and returns it as JSON in format:\npostTitle\npostUrl\npointsCount",
             "editor": "textarea"
         },
         "model": {
