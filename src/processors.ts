@@ -29,6 +29,8 @@ export const shrinkHtml = (html: string) => {
         .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/g, '') // remove all script tags
         .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/g, '') // remove all style tags
         .replace(/<noscript[\s\S]*?>[\s\S]*?<\/noscript>/g, '') // remove all no script tags
+        .replace(/<path[\s\S]*?>[\s\S]*?<\/path>/g, '') // remove all no script tags
+        .replace(/xlink:href="([^"]*)"/g, '') // remove all no script tags
         .replace(/\s{2,}/g, ' ') // remove extra spaces
         .replace(/>\s+</g, '><'); // remove all spaces between tags
 };
@@ -41,27 +43,40 @@ export const htmlToMarkdown = (html: string) => {
     return htmlToMarkdownProcessor.turndown(html);
 };
 
-export const chunkText = (text: string, maxLength: number) => {
+const chunkText = (text:string, maxLength: number) => {
+    const numChunks = Math.ceil(text.length / maxLength);
+    const chunks = new Array(numChunks);
+
+    for (let i = 0, o = 0; i < numChunks; ++i, o += maxLength) {
+        chunks[i] = text.substr(o, maxLength);
+    }
+
+    return chunks;
+};
+
+export const chunkTextByTokenLenght = (text: string, maxTokenLength: number) => {
     const chunks: string[] = [];
     let chunk = '';
-    for (const line of text.split('\n')) {
-        if (chunk.length + line.length > maxLength) {
+    for (const textPart of chunkText(text, 100)) {
+        if (getNumberOfTextTokens(chunk) + getNumberOfTextTokens(textPart) < maxTokenLength) {
+            chunk += textPart;
+        } else {
             chunks.push(chunk);
-            chunk = '';
+            chunk = textPart;
         }
-        chunk += `${line}\n`;
     }
     chunks.push(chunk);
     return chunks;
 };
 
-export const shortsText = (text: string, maxTokenLength: number) => {
+export const shortsTextByTokenLength = (text: string, maxTokenLength: number) => {
     let shortText = '';
-    for (const line of text.split('\n')) {
-        if (getNumberOfTextTokens(shortText) + getNumberOfTextTokens(line) > maxTokenLength) {
+    for (const textPart of chunkText(text, 100)) {
+        if (getNumberOfTextTokens(shortText) + getNumberOfTextTokens(textPart) < maxTokenLength) {
+            shortText += textPart;
+        } else {
             break;
         }
-        shortText += `${line}\n`;
     }
     return shortText;
 };

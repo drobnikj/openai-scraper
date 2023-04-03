@@ -1,3 +1,4 @@
+import { log } from 'crawlee';
 import { encode } from 'gpt-3-encoder';
 import { Configuration, OpenAIApi, CreateCompletionResponseUsage } from 'openai';
 import { OpenaiAPIError } from './errors.js';
@@ -75,11 +76,13 @@ export const processInstructions = async ({
     let answer = '';
     let usage = {} as CreateCompletionResponseUsage;
     const promptTokenLength = getNumberOfTextTokens(prompt);
+    const maxTokens = modelConfig.maxTokens - promptTokenLength - 150;
+    log.debug(`Calling Openai API with model ${modelConfig.model}`, { promptTokenLength });
     if (modelConfig.interface === 'text') {
         const completion = await openai.createCompletion({
             model: modelConfig.model,
             prompt,
-            max_tokens: modelConfig.maxTokens - promptTokenLength - 1,
+            max_tokens: maxTokens,
         });
         answer = completion?.data?.choices[0]?.text || '';
         if (completion?.data?.usage) usage = completion?.data?.usage;
@@ -92,7 +95,7 @@ export const processInstructions = async ({
                     content: prompt,
                 },
             ],
-            max_tokens: modelConfig.maxTokens - promptTokenLength - 1,
+            max_tokens: maxTokens,
         });
         answer = conversation?.data?.choices[0]?.message?.content || '';
         if (conversation?.data?.usage) usage = conversation?.data?.usage;

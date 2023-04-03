@@ -11,10 +11,10 @@ import {
     OpenaiAPIUsage,
 } from './openai.js';
 import {
-    chunkText,
+    chunkTextByTokenLenght,
     htmlToMarkdown,
     htmlToText,
-    shortsText,
+    shortsTextByTokenLength,
     shrinkHtml,
     tryToParseJsonFromString,
 } from './processors.js';
@@ -99,12 +99,16 @@ const crawler = new PlaywrightCrawler({
                 return;
             } if (input.longContentConfig === 'truncate') {
                 const contentMaxTokens = (modelConfig.maxTokens * 0.9) - instructionTokenLength; // 10% buffer for answer
-                const truncatedContent = shortsText(pageContent, contentMaxTokens);
+                const truncatedContent = shortsTextByTokenLength(pageContent, contentMaxTokens);
                 log.info(
                     `Processing page ${request.url} with truncated text using GPT instruction...`,
                     { originalContentLength: pageContent.length, contentLength: truncatedContent.length, contentMaxTokens, contentFormat: input.content },
                 );
                 const prompt = `${input.instructions}\`\`\`${truncatedContent}\`\`\``;
+                log.debug(
+                    `Truncated content for ${request.url}`,
+                    { promptTokenLength: getNumberOfTextTokens(prompt), contentMaxTokens, truncatedContentLength: getNumberOfTextTokens(truncatedContent) },
+                );
                 try {
                     const answerResult = await processInstructions({ prompt, openai, modelConfig });
                     answer = answerResult.answer;
@@ -114,7 +118,7 @@ const crawler = new PlaywrightCrawler({
                 }
             } else if (input.longContentConfig === 'split') {
                 const contentMaxTokens = (modelConfig.maxTokens * 0.9) - instructionTokenLength; // 10% buffer for answer
-                const pageChunks = chunkText(pageContent, contentMaxTokens);
+                const pageChunks = chunkTextByTokenLenght(pageContent, contentMaxTokens);
                 log.info(
                     `Processing page ${request.url} with split text using GPT instruction...`,
                     { originalContentLength: pageContent.length, contentMaxTokens, chunksLength: pageChunks.length, contentFormat: input.content },
@@ -122,6 +126,15 @@ const crawler = new PlaywrightCrawler({
                 const promises = [];
                 for (const contentPart of pageChunks) {
                     const prompt = `${input.instructions}\`\`\`${contentPart}\`\`\``;
+                    log.debug(
+                        `Chunk content for ${request.url}`,
+                        {
+                            promptTokenLength: getNumberOfTextTokens(prompt),
+                            contentMaxTokens,
+                            truncatedContentPartLength: getNumberOfTextTokens(contentPart),
+                            pageChunksCount: pageChunks.length,
+                        },
+                    );
                     promises.push(processInstructions({ prompt, openai, modelConfig }));
                 }
                 try {
@@ -129,6 +142,10 @@ const crawler = new PlaywrightCrawler({
                     const joinAnswers = answerList.map(({ answer: a }) => a).join(`\n\n${MERGE_DOCS_SEPARATOR}\n\n`);
                     answerList.forEach(({ usage }) => openaiUsage.logApiCallUsage(usage));
                     const mergePrompt = `${MERGE_INSTRUCTIONS}\n${joinAnswers}`;
+                    log.debug(
+                        `Merge instructions for ${request.url}`,
+                        { promptTokenLength: getNumberOfTextTokens(mergePrompt), joinAnswersTokenLength: getNumberOfTextTokens(joinAnswers) },
+                    );
                     const answerResult = await processInstructions({ prompt: mergePrompt, openai, modelConfig });
                     answer = answerResult.answer;
                     openaiUsage.logApiCallUsage(answerResult.usage);
