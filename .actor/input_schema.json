@@ -35,30 +35,12 @@
             "prefill": "Get from the page the post with the most points and returns it as JSON in format:\npostTitle\npostUrl\npointsCount",
             "editor": "textarea"
         },
-        "model": {
-            "title": "GPT model",
-            "type": "string",
-            "description": "Select GPT model, see <a href='https://platform.openai.com/docs/models/overview' target='_blank' rel='noopener'>models overview</a>.",
-            "editor": "select",
-            "default": "gpt-3.5-turbo",
-            "enum": ["gpt-3.5-turbo", "gpt-4", "text-davinci-003"],
-            "enumTitles": ["GPT-3.5 Turbo", "GPT-4", "GTP-3 (davinci)"]
-        },
         "targetSelector": {
             "title": "Content selector",
             "type": "string",
             "description": "A CSS selector of HTML element on the page will be used in instruction. Istead of whole page you can use only part of the page. For example: \"div#content\".",
             "editor": "textfield",
             "prefill": ""
-        },
-        "content": {
-            "title": "Page content",
-            "type": "string",
-            "description": "You can select how to process the page using GPT. The markdown is set by default as it works best as input for GPT chat.",
-            "editor": "select",
-            "default": "markdown",
-            "enum": ["markdown", "html", "text"],
-            "enumTitles": ["Markdown", "HTML", "Plain Text"]
         },
         "longContentConfig": {
             "title": "Long content handling",
@@ -68,6 +50,13 @@
             "default": "truncate",
             "enum": ["truncate", "split", "skip"],
             "enumTitles": ["Truncate content", "Split content", "Skip page"]
+        },
+        "maxCrawlingDepth": {
+            "title": "Max crawling depth",
+            "type": "integer",
+            "description": "Specifies how many links away from <b>Start URLs</b> the scraper will descend. This value is a safeguard against infinite crawling depths for misconfigured scrapers.<br><br>If set to <code>0</code>, there is no limit.",
+            "minimum": 0,
+            "default": 0
         },
         "maxPagesPerCrawl": {
             "title": "Max pages per run",
@@ -87,5 +76,5 @@
             "editor": "proxy"
         }
     },
-    "required": ["startUrls", "instructions", "model", "content" ]
+    "required": ["startUrls", "instructions" ]
 }

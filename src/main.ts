@@ -19,6 +19,10 @@ import {
     tryToParseJsonFromString,
 } from './processors.js';
 
+// We used just one model and markdown content to simplify pricing, but we can test with other models and contents, but it cannot be set in input for now.
+const DEFAULT_OPENAI_MODEL = 'gpt-3.5-turbo';
+const DEFAULT_CONTENT = 'markdown';
+
 const MAX_REQUESTS_PER_CRAWL = 100;
 
 const MERGE_DOCS_SEPARATOR = '----';
@@ -38,7 +42,7 @@ const input = await Actor.getInput() as Input;
 if (!input) throw new Error('INPUT cannot be empty!');
 // @ts-ignore
 const openai = await getOpenAIClient(process.env.OPENAI_API_KEY, process.env.OPENAI_ORGANIZATION_ID);
-const modelConfig = validateGPTModel(input.model);
+const modelConfig = validateGPTModel(input.model || DEFAULT_OPENAI_MODEL);
 
 const crawler = new PlaywrightCrawler({
     launchContext: {
@@ -47,17 +51,34 @@ const crawler = new PlaywrightCrawler({
             headless: true,
         },
     },
+    sessionPoolOptions: {
+        blockedStatusCodes: [401, 429],
+    },
+    preNavigationHooks: [
+        async ({ blockRequests }) => {
+            // By default blocks [".css", ".jpg", ".jpeg", ".png", ".svg", ".gif", ".woff", ".pdf", ".zip"]
+            await blockRequests();
+        },
+    ],
+    // NOTE: GPT-4 is very slow, so we need to increase the timeout
+    requestHandlerTimeoutSecs: 3 * 60,
     proxyConfiguration: input.proxyConfiguration && await Actor.createProxyConfiguration(input.proxyConfiguration),
     maxRequestsPerCrawl: input.maxPagesPerCrawl || MAX_REQUESTS_PER_CRAWL,
 
     async requestHandler({ request, page, enqueueLinks }) {
+        const { depth = 0 } = request.userData;
         log.info(`Opening ${request.url}...`);
 
         // Enqueue links
-        if (input.linkSelector && input?.globs?.length) {
+        // If maxCrawlingDepth is not set or 0 the depth is infinite.
+        const isDepthLimitReached = !!input.maxCrawlingDepth && depth < input.maxCrawlingDepth;
+        if (input.linkSelector && input?.globs?.length && !isDepthLimitReached) {
             const { processedRequests } = await enqueueLinks({
                 selector: input.linkSelector,
                 globs: input.globs,
+                userData: {
+                    depth: depth + 1,
+                },
             });
             const enqueuedLinks = processedRequests.filter(({ wasAlreadyPresent }) => !wasAlreadyPresent);
             const alreadyPresentLinksCount = processedRequests.length - enqueuedLinks.length;
@@ -73,7 +94,8 @@ const crawler = new PlaywrightCrawler({
             : await page.content();
 
         let pageContent = '';
-        switch (input.content) {
+        const content = input.content || DEFAULT_CONTENT;
+        switch (content) {
             case 'markdown':
                 pageContent = htmlToMarkdown(originalContentHtml);
                 break;
@@ -89,12 +111,12 @@ const crawler = new PlaywrightCrawler({
         const instructionTokenLength = getNumberOfTextTokens(input.instructions);
 
         let answer = '';
-        const openaiUsage = new OpenaiAPIUsage(input.model);
+        const openaiUsage = new OpenaiAPIUsage(modelConfig.model);
         if (contentTokenLength > modelConfig.maxTokens) {
             if (input.longContentConfig === 'skip') {
                 log.info(
-                    `Skipping page ${request.url} because content is too long for the ${input.model} model.`,
-                    { contentLength: pageContent.length, contentTokenLength, url: input.content },
+                    `Skipping page ${request.url} because content is too long for the ${modelConfig.model} model.`,
+                    { contentLength: pageContent.length, contentTokenLength, url: content },
                 );
                 return;
             } if (input.longContentConfig === 'truncate') {
@@ -102,7 +124,7 @@ const crawler = new PlaywrightCrawler({
                 const truncatedContent = shortsTextByTokenLength(pageContent, contentMaxTokens);
                 log.info(
                     `Processing page ${request.url} with truncated text using GPT instruction...`,
-                    { originalContentLength: pageContent.length, contentLength: truncatedContent.length, contentMaxTokens, contentFormat: input.content },
+                    { originalContentLength: pageContent.length, contentLength: truncatedContent.length, contentMaxTokens, contentFormat: content },
                 );
                 const prompt = `${input.instructions}\`\`\`${truncatedContent}\`\`\``;
                 log.debug(
@@ -121,7 +143,7 @@ const crawler = new PlaywrightCrawler({
                 const pageChunks = chunkTextByTokenLenght(pageContent, contentMaxTokens);
                 log.info(
                     `Processing page ${request.url} with split text using GPT instruction...`,
-                    { originalContentLength: pageContent.length, contentMaxTokens, chunksLength: pageChunks.length, contentFormat: input.content },
+                    { originalContentLength: pageContent.length, contentMaxTokens, chunksLength: pageChunks.length, contentFormat: content },
                 );
                 const promises = [];
                 for (const contentPart of pageChunks) {
@@ -156,7 +178,7 @@ const crawler = new PlaywrightCrawler({
         } else {
             log.info(
                 `Processing page ${request.url} with GPT instruction...`,
-                { contentLength: pageContent.length, contentTokenLength, contentFormat: input.content },
+                { contentLength: pageContent.length, contentTokenLength, contentFormat: content },
             );
             const prompt = `${input.instructions}\`\`\`${pageContent}\`\`\``;
             try {
@@ -189,7 +211,7 @@ const crawler = new PlaywrightCrawler({
             answer,
             jsonAnswer: tryToParseJsonFromString(answer),
             '#debug': {
-                model: input.model,
+                model: modelConfig.model,
                 openaiUsage: openaiUsage.usage,
                 usdUsage: openaiUsage.finalCostUSD,
                 apiCallsCount: openaiUsage.apiCallsCount,

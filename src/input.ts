@@ -8,10 +8,11 @@ export interface Input {
     globs: GlobInput[];
     linkSelector?: string;
     instructions: string;
-    model: string;
+    model?: string;
     targetSelector?: string;
     content?: string;
     maxPagesPerCrawl: number;
+    maxCrawlingDepth: number;
     proxyConfiguration: ProxyConfigurationOptions;
     longContentConfig?: 'truncate' | 'split' | 'skip';
 }

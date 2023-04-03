@@ -1,6 +1,6 @@
 # GPT Scraper
 
-The GPT Scraper is a powerful tool that leverages OpenAI's API to modify text or HTML obtained from a scraper.
+The GPT Scraper is a powerful tool that leverages OpenAI's API to modify text obtained from a scraper.
 You can use the scraper to extract content from a website and then pass that content to the OpenAI API to make the magic.
 
 ## Limits
@@ -67,20 +67,6 @@ You can instruct OpenAI to answer with "skip this page", which will skip the pag
 
 - "Summarize this page into three sentences. If the page is about Proxy, answer with 'skip this page'.".
 
-### GPT model
-
-Select the GPT model the scraper uses. See <a href='https://platform.openai.com/docs/models/overview' target='_blank' rel='noopener'>models overview</a>.
-
-### Page Content
-
-You can configure how to process the page using GPT. The options are:
-
-- **Markdown** - The scraper will pass the Markdown of the page to GPT.
-- **HTML** - The scraper will pass the HTML of the page to GPT.
-- **Text** - The scraper will pass the page's text to GPT.
-
-The Markdown is set by default as it works best as input for GPT chat.
-
 ### Long content handling
 
 The GPT has a limit on the number of tokens it can handle, but there is the option to overcome this limit.
@@ -89,6 +75,11 @@ The options are:
 - Truncate content
 - Split content
 - Skip page
+
+### Max crawling depth
+
+Specifies how many links away from `Start URLs` the scraper will descend.
+This value is a safeguard against infinite crawling depths for misconfigured scrapers.
 
 ### Max pages per run
 
