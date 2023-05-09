@@ -126,6 +126,7 @@ const crawler = new PlaywrightCrawler({
                     `Processing page ${request.url} with truncated text using GPT instruction...`,
                     { originalContentLength: pageContent.length, contentLength: truncatedContent.length, contentMaxTokens, contentFormat: content },
                 );
+                log.warning(`Content for ${request.url} was truncated to match GPT instruction limit.`);
                 const prompt = `${input.instructions}\`\`\`${truncatedContent}\`\`\``;
                 log.debug(
                     `Truncated content for ${request.url}`,
